@@ -137,16 +137,15 @@ fun ProxySelector() {
     var selectedProxy by remember { mutableStateOf<Proxy?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var refreshTrigger by remember { mutableStateOf(0) } // used for manual/auto refresh
 
     // Compute fastest proxy based on ping
     val fastestProxy by remember {
-        derivedStateOf {
-            proxies.filter { it.ping != null }.minByOrNull { it.ping!! }
-        }
+        derivedStateOf { proxies.filter { it.ping != null }.minByOrNull { it.ping!! } }
     }
 
-    // --- Load proxies on first composition ---
-    LaunchedEffect(Unit) {
+    // --- Load proxies whenever refreshTrigger changes ---
+    LaunchedEffect(refreshTrigger) {
         try {
             isLoading = true
             errorMessage = null
@@ -167,6 +166,14 @@ fun ProxySelector() {
         }
     }
 
+    // --- Auto-refresh every 60 seconds ---
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(60_000) // 60 seconds
+            refreshTrigger++
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
 
         Row(
@@ -177,6 +184,7 @@ fun ProxySelector() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("Select a proxy:", style = MaterialTheme.typography.titleMedium)
+            Button(onClick = { refreshTrigger++ }) { Text("Refresh Now") } // Manual refresh
         }
 
         when {
@@ -229,7 +237,9 @@ fun ProxySelector() {
                         }
                     },
                     enabled = selectedProxy != null,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text("Open in Telegram")
                 }
@@ -237,15 +247,22 @@ fun ProxySelector() {
         }
     }
 }
-
-// ---------------- Single Proxy Row ----------------
 @Composable
-fun ProxyRow(proxy: Proxy, selectedProxy: Proxy?, fastestProxy: Proxy?, onSelect: (Proxy) -> Unit) {
-    val backgroundColor = if (proxy == fastestProxy) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.background
+fun ProxyRow(
+    proxy: Proxy,
+    selectedProxy: Proxy?,
+    fastestProxy: Proxy?,
+    onSelect: (Proxy) -> Unit
+) {
+    val backgroundColor = if (proxy == fastestProxy)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+    else
+        MaterialTheme.colorScheme.background
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .background(backgroundColor)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
     ) {
         Row(
             modifier = Modifier
