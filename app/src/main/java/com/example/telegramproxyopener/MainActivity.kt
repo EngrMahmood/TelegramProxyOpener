@@ -28,7 +28,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
-
+import java.net.InetSocketAddress
+import java.net.Socket
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.*
 
 
 // ---------------- Data Models ----------------
@@ -41,7 +45,8 @@ data class Proxy(
     val type: ProxyType,
     val country: String? = null,
     val provider: String? = null,
-    val ping: Int? = null
+    val ping: Int? = null,
+    val isOnline: Boolean?
 )
 
 
@@ -64,6 +69,7 @@ suspend fun fetchMtProtoProxies(): List<Proxy> = withContext(Dispatchers.IO) {
     val client = OkHttpClient.Builder()
         .callTimeout(15, TimeUnit.SECONDS)
         .build()
+
     val request = Request.Builder()
         .url("https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json")
         .build()
@@ -73,7 +79,8 @@ suspend fun fetchMtProtoProxies(): List<Proxy> = withContext(Dispatchers.IO) {
             if (!response.isSuccessful) return@withContext emptyList<Proxy>()
             val bodyString = response.body()?.string() ?: return@withContext emptyList<Proxy>()
             val jsonArray = JSONArray(bodyString)
-            val list = (0 until jsonArray.length()).map { i ->
+
+            (0 until jsonArray.length()).map { i ->
                 val json = jsonArray.getJSONObject(i)
                 Proxy(
                     server = json.getString("host"),
@@ -82,10 +89,12 @@ suspend fun fetchMtProtoProxies(): List<Proxy> = withContext(Dispatchers.IO) {
                     type = ProxyType.MTPROTO,
                     country = json.optString("country", "Unknown"),
                     provider = json.optString("provider", "Unknown"),
-                    ping = json.optInt("ping", 9999)
+                    ping = json.optInt("ping", 9999),
+                    isOnline = null
+
+
                 )
-            }.sortedBy { it.ping }
-            list.take(5)
+            }.sortedBy { it.ping }.take(5)
         }
     } catch (e: Exception) {
         e.printStackTrace()
@@ -98,6 +107,7 @@ suspend fun fetchSocksProxies(): List<Proxy> = withContext(Dispatchers.IO) {
     val client = OkHttpClient.Builder()
         .callTimeout(15, TimeUnit.SECONDS)
         .build()
+
     val request = Request.Builder()
         .url("https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/socks.json")
         .build()
@@ -107,7 +117,8 @@ suspend fun fetchSocksProxies(): List<Proxy> = withContext(Dispatchers.IO) {
             if (!response.isSuccessful) return@withContext emptyList<Proxy>()
             val bodyString = response.body()?.string() ?: return@withContext emptyList<Proxy>()
             val jsonArray = JSONArray(bodyString)
-            val list = (0 until jsonArray.length()).map { i ->
+
+            (0 until jsonArray.length()).map { i ->
                 val json = jsonArray.getJSONObject(i)
                 Proxy(
                     server = json.getString("ip"),
@@ -116,16 +127,17 @@ suspend fun fetchSocksProxies(): List<Proxy> = withContext(Dispatchers.IO) {
                     type = ProxyType.SOCKS5,
                     country = json.optString("country", "Unknown"),
                     provider = json.optString("provider", "Unknown"),
-                    ping = json.optInt("ping", 9999)
+                    ping = json.optInt("ping", 9999),
+                    isOnline = null // ✅ Initial placeholder, updated later
                 )
-            }.sortedBy { it.ping }
-            list.take(5)
+            }.sortedBy { it.ping }.take(5)
         }
     } catch (e: Exception) {
         e.printStackTrace()
         emptyList()
     }
 }
+
 
 // ---------------- Compose UI ----------------
 @Composable
@@ -157,6 +169,18 @@ fun ProxySelector() {
             selectedProxy = fastestProxy ?: proxies.firstOrNull()
 
             if (proxies.isEmpty()) errorMessage = "No proxies found"
+            else {
+                // 🔹 Launch background checks for status
+                launch {
+                    proxies.forEachIndexed { index, proxy ->
+                        val isOnline = checkProxyStatus(proxy.server, proxy.port)
+                        proxies = proxies.toMutableList().apply {
+                            this[index] = this[index].copy(isOnline = isOnline)
+                        }
+                    }
+                }
+            }
+
         } catch (e: Exception) {
             e.printStackTrace()
             errorMessage = "Failed to fetch proxies"
@@ -242,10 +266,32 @@ fun ProxySelector() {
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text("Open in Telegram")
+
                 }
+                Button(
+                    onClick = {
+                        val shareIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "Download Telegram Proxy Opener APK:\nhttps://github.com/EngrMahmood/TelegramProxyOpener/releases"
+                            )
+                            type = "text/plain"
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share App"))
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("Share App")
+                }
+
             }
+
         }
     }
+
 }
 @Composable
 fun ProxyRow(
@@ -278,20 +324,73 @@ fun ProxyRow(
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text("${proxy.server}:${proxy.port} [${proxy.type}]")
-                proxy.country?.let { Text("Country: $it", style = MaterialTheme.typography.bodySmall) }
-                proxy.provider?.let { Text("Provider: $it", style = MaterialTheme.typography.bodySmall) }
-                proxy.ping?.let { Text("Ping: ${it}ms", style = MaterialTheme.typography.bodySmall) }
+
+                proxy.country?.let {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = countryFlagEmoji(it) + " $it",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                proxy.provider?.let {
+                    Text("Provider: $it", style = MaterialTheme.typography.bodySmall)
+                }
+
+                proxy.ping?.let {
+                    val status = when {
+                        it <= 100 -> "🟢 Fast"
+                        it <= 250 -> "🟡 Medium"
+                        else -> "🔴 Slow"
+                    }
+                    Text("Ping: ${it} ms  $status", style = MaterialTheme.typography.bodySmall)
+                }
+                when (proxy.isOnline) {
+                    true -> Text("Status: 🟢 Available", style = MaterialTheme.typography.bodySmall)
+                    false -> Text("Status: 🔴 Unavailable", style = MaterialTheme.typography.bodySmall)
+                    null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .padding(end = 6.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text("Checking...", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
+
         }
         Divider()
+
+
     }
 }
 
+
+fun countryFlagEmoji(countryCode: String): String {
+    if (countryCode.length != 2) return "🏳️"
+    val upper = countryCode.uppercase()
+    val firstLetter = Character.codePointAt(upper, 0) - 0x41 + 0x1F1E6
+    val secondLetter = Character.codePointAt(upper, 1) - 0x41 + 0x1F1E6
+    return String(Character.toChars(firstLetter)) + String(Character.toChars(secondLetter))
+}
 
 @Preview(showBackground = true)
 @Composable
 fun ProxySelectorPreview() {
     TelegramProxyOpenerTheme {
         ProxySelector()
+    }
+}
+suspend fun checkProxyStatus(host: String, port: Int): Boolean = withContext(Dispatchers.IO) {
+    try {
+        Socket().use { socket ->
+            socket.connect(InetSocketAddress(host, port), 1500)
+            true
+        }
+    } catch (e: Exception) {
+        false
     }
 }
