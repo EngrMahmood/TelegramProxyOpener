@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Telegram Proxy Opener</string>
+
+    <!-- Google test IDs: safe to build/run with, but AdMob will not pay out on them.
+         Swap all four for your own AdMob app/ad-unit IDs before releasing. -->
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_banner_ad_unit_id">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="admob_interstitial_ad_unit_id">ca-app-pub-3940256099942544/1033173712</string>
+</resources>
