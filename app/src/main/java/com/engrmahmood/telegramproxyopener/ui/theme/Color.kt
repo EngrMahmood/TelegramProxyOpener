@@ -1,4 +1,4 @@
-package com.example.telegramproxyopener.ui.theme
+package com.engrmahmood.telegramproxyopener.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

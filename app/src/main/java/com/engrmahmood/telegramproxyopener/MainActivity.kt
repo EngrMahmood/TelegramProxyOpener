@@ -1,4 +1,4 @@
-package com.example.telegramproxyopener
+package com.engrmahmood.telegramproxyopener
 
 import android.app.Activity
 import android.content.Intent
@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.telegramproxyopener.ui.theme.TelegramProxyOpenerTheme
+import com.engrmahmood.telegramproxyopener.ui.theme.TelegramProxyOpenerTheme
 import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

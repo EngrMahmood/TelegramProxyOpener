@@ -14,11 +14,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.telegramproxyopener"
+    namespace = "com.engrmahmood.telegramproxyopener"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.telegramproxyopener"
+        applicationId = "com.engrmahmood.telegramproxyopener"
         minSdk = 21
         targetSdk = 36
         versionCode = 1

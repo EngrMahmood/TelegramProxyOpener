@@ -1,4 +1,4 @@
-package com.example.telegramproxyopener
+package com.engrmahmood.telegramproxyopener
 
 import android.app.Activity
 import android.content.Context

@@ -1,4 +1,4 @@
-package com.example.telegramproxyopener
+package com.engrmahmood.telegramproxyopener
 
 import org.junit.Test
 
