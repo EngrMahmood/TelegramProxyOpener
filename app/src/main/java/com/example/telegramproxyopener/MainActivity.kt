@@ -165,7 +165,7 @@ fun ProxySelector() {
     var telegramOpenCount by remember { mutableStateOf(0) }
 
     val interstitialAdManager = remember {
-        InterstitialAdManager(context.getString(R.string.admob_interstitial_ad_unit_id))
+        InterstitialAdManager(interstitialAdUnitId(context))
     }
     LaunchedEffect(Unit) { interstitialAdManager.load(context) }
 
@@ -236,7 +236,7 @@ fun ProxySelector() {
             )
         },
         bottomBar = {
-            BannerAd(adUnitId = stringResource(R.string.admob_banner_ad_unit_id))
+            BannerAd(adUnitId = bannerAdUnitId(context))
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {

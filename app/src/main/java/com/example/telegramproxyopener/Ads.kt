@@ -19,6 +19,18 @@ import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 
 private const val ADS_TAG = "Ads"
 
+// Google's official public test ad unit IDs. Debug builds always use these so that
+// development/testing never generates impressions or clicks on the real ad units,
+// which AdMob can flag as invalid traffic and use to suspend the account.
+private const val TEST_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/6300978111"
+private const val TEST_INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
+
+fun bannerAdUnitId(context: Context): String =
+    if (BuildConfig.DEBUG) TEST_BANNER_AD_UNIT_ID else context.getString(R.string.admob_banner_ad_unit_id)
+
+fun interstitialAdUnitId(context: Context): String =
+    if (BuildConfig.DEBUG) TEST_INTERSTITIAL_AD_UNIT_ID else context.getString(R.string.admob_interstitial_ad_unit_id)
+
 @Composable
 fun BannerAd(adUnitId: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current

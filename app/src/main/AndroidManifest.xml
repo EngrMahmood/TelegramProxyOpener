@@ -25,7 +25,6 @@
             </intent-filter>
         </activity>
 
-        <!-- TODO: replace with your real AdMob App ID before release (currently Google's public test ID) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admob_app_id" />
